@@ -68,6 +68,13 @@ EOF
 
 ## Known WSL/Nix caveats
 
+- **systemd is also the Home Manager prerequisite.** Phase 2's portable
+  Home Manager profile (docs/home-manager.md) relies on user services and
+  `environment.d` integration, which need systemd running in the distro
+  (step 3 above). The profile itself defines no services and requires no
+  system-level change; without systemd, Home Manager warns and its user
+  units silently degrade.
+
 - **Sandbox builds:** Nix builds inside WSL/containers can fail with
   `mounting /proc: Operation not permitted`. The documented mitigation is
   `sandbox = false` in `/etc/nix/nix.conf`. It is a per-distro system file;

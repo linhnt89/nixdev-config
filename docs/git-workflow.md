@@ -23,8 +23,11 @@ the same Git hosting CLI merely because the base environment is shared.
 
 - Remotes are configured per checkout: `git remote add origin
   git@gitlab.com:team/project.git` (or `glab repo clone`). Keep SSH keys in
-  `~/.ssh`; `programs.ssh`-style config is a Phase 2 Home Manager concern
-  (docs/home-manager.md), deliberately not in this flake.
+  `~/.ssh`. The Home Manager profile (Phase 2, docs/home-manager.md) creates
+  git *structure* only — `~/.config/git/config` with default branch, delta
+  pager, and `push.autoSetupRemote` — and never touches identity:
+  `user.name`/`user.email`, SSH host blocks, signing keys, and remotes
+  stay in the machine's local files (`~/.gitconfig`, `~/.ssh`).
 
 ### GitHub on the laptop: read-only, optional, on demand
 
@@ -46,6 +49,15 @@ the same Git hosting CLI merely because the base environment is shared.
   and its existing `~/.ssh` setup — all local, unchanged by this repo.
 - GitLab is not installed on the desktop; `glab` is available on demand via
   `nix shell nixpkgs#glab` if ever needed (not a default).
+
+## Home Manager profile: same split, same boundary
+
+The portable Home Manager profiles (docs/home-manager.md) follow this
+role split exactly: the laptop profile ships `glab` (never `gh`), the
+desktop profile ships `gh` (never `glab`). The git module writes
+structure-only config to `~/.config/git/config`; every identity and
+credential value listed above stays out of the profiles, enforced by
+`scripts/check.sh`'s no-secrets scan.
 
 ## Shared rules
 

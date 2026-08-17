@@ -1,7 +1,8 @@
 # Updates and rollback
 
 This adopts the desktop configuration's update policy, adapted to a
-devShell-only repo.
+repo that ships devShells *and* Home Manager profiles (Phase 2,
+docs/home-manager.md). One nixpkgs pin covers both surfaces.
 
 ## Principles
 
@@ -10,19 +11,20 @@ devShell-only repo.
   merge. No CI is configured and none is required — local validation is the
   authoritative gate.
 - **Never self-update Nix-managed tools.** Tools that come from these
-  devShells are immutable in the Nix store; their versions change only
-  through this repository's pins, never via `npm update`, `apt`, or a
-  project's own auto-updater. Claude Code is the documented exception
-  because it is deliberately **not** Nix-managed (docs/claude-code.md).
-- **Rollback is a lock revert** — there are no system generations to roll
-  back in Phase 1. That changes when Home Manager lands (Phase 2,
-  docs/home-manager.md).
+  devShells or the Home Manager profiles are immutable in the Nix store;
+  their versions change only through this repository's pins, never via
+  `npm update`, `apt`, or a project's own auto-updater. Claude Code is
+  the documented exception because it is deliberately **not** Nix-managed
+  (docs/claude-code.md).
+- **Rollback is a lock revert** for the devShells, and **generation-based**
+  for the Home Manager profiles once activated (`home-manager rollback` /
+  `home-manager generations` — docs/home-manager.md).
 
 ## Update lanes
 
 | Lane | Pin | How it moves |
 | --- | --- | --- |
-| Stable shell packages | `nixpkgs` input (`nixos-26.05`) | Dependabot weekly nix PR (grouped) or `nix flake update nixpkgs` |
+| Stable shell + HM packages | `nixpkgs` + `home-manager` inputs (`nixos-26.05` / `release-26.05`, HM's nixpkgs follows ours) | Dependabot weekly nix PR (grouped) or `nix flake update nixpkgs home-manager` |
 | Assistant lane (Pi) | `nixpkgs-unstable` input | Dependabot individual PR (deliberate, not grouped) or `nix flake update nixpkgs-unstable` |
 
 `nixpkgs-unstable` is excluded from the stable group on purpose: the Pi lane
