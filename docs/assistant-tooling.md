@@ -6,7 +6,11 @@ credential boundaries are deliberately different.
 ## Pi — optional, small/local fallback
 
 - **Role:** optional second assistant, never a default on either machine.
-  `nix develop .#assistant` provides the Pi binary on demand.
+  `nix develop .#assistant` provides the Pi binary on demand, and the
+  Home Manager profile can opt in to a Pi *package* through the exported
+  `homeManagerModules.assistant` module (not imported by default; see
+  docs/home-manager.md). Both install the binary only — no provider/model
+  configuration ships from this repo.
 - **No provider/model shipped.** This repository contains **no** provider
   selection, model pin, or seed settings for Pi — the desktop's
   `~/.pi/agent/settings.json` values (its fleet-wide cloud default) are

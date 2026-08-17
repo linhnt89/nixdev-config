@@ -5,12 +5,14 @@
 # workflows, and local validation is the authoritative gate.
 #
 # Lane notes:
-#   - nixpkgs (stable, nixos-26.05): the common + role shell packages.
+#   - nixpkgs (stable, nixos-26.05) + home-manager (release-26.05,
+#     nixpkgs follows this repo's): the common + role shell packages and
+#     the Home Manager modules/profiles.
 #   - nixpkgs-unstable (Pi assistant lane): excluded from the stable group
 #     so the Pi lane still moves deliberately, like the desktop convention.
 #     It can still receive its own individual PRs; review those like any
 #     other update.
-#   - No npm lane: this repo ships no package.json in Phase 1.
+#   - No npm lane: this repo ships no package.json.
 version: 2
 updates:
   - package-ecosystem: "nix"
@@ -28,5 +30,6 @@ updates:
       stable-lane:
         patterns:
           - "nixpkgs"
+          - "home-manager"
         exclude-patterns:
           - "nixpkgs-unstable"

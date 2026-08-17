@@ -7,15 +7,16 @@ This file is the project's committed home for project-intrinsic agent knowledge:
 
 ## What this repository is
 
-- Shared, **terminal-only** development environment for two machines: the MetaCube NixOS desktop (`devShells.desktop`, GitHub via `gh`) and the Arch WSL2 work laptop (`devShells.laptop` = `default`, company GitLab via `glab`), plus an optional `devShells.assistant` (Pi, no provider/model configured).
+- Shared, **terminal-only** development environment for two machines: the MetaCube NixOS desktop (`devShells.desktop`, GitHub via `gh`) and the Arch WSL2 work laptop (`devShells.laptop` = `default`, company GitLab via `glab`), plus an optional `devShells.assistant` (Pi, no provider/model configured). Since Phase 2 the same repo also exports portable Home Manager modules/profiles (`home/`, `lib.mkStandalone`) with the identical role split.
 - **Not** the nixos-config repository: no NixOS modules, hosts, desktop session, or system services belong here. Do not copy desktop GUI/desktop config into this repo.
 - No secrets, credentials, API keys, or machine-specific assistant settings are ever accepted — this is enforced by `scripts/check.sh` (credential-shaped string scan over tracked files).
 
 ## Key commands
 
 - Enter a shell: `nix develop` (laptop) / `nix develop .#desktop` / `nix develop .#assistant`.
-- Validate everything: `scripts/check.sh` — static checks (layout, bash -n, shellcheck, YAML/JSON parse, no-secrets scan) + `nix flake check` + non-activating builds of all devShell outputs. **This is the authoritative prereq for any PR; CI is intentionally absent.**
-- Update inputs: `nix flake update` (or per-input); rollback is a flake.lock revert (docs/updates.md). Dependabot opens weekly nix-lane PRs.
+- Standalone Home Manager activation is documented in `docs/home-manager.md` (thin personal wrapper flake + `lib.mkStandalone`; generation-based rollback). It is never run from this repo's own validation.
+- Validate everything: `scripts/check.sh` — static checks (layout, bash -n, shellcheck, YAML/JSON parse, no-secrets scan) + `nix flake check` + non-activating builds of all devShell outputs and both Home Manager role profiles (built via `lib.mkStandalone` with a throwaway test user). **This is the authoritative prereq for any PR; CI is intentionally absent.**
+- Update inputs: `nix flake update` (or per-input); rollback is a flake.lock revert (docs/updates.md). Dependabot opens weekly nix-lane PRs (stable lane = nixpkgs + home-manager).
 
 ## Where decisions live (docs are authoritative)
 
@@ -24,14 +25,17 @@ This file is the project's committed home for project-intrinsic agent knowledge:
 - Claude Code is native-installed only, never Nix-pinned: `docs/claude-code.md`
 - GitHub-read-only vs company-GitLab on the laptop: `docs/git-workflow.md`
 - Pi is optional with a local llama.cpp fallback; firstmate stays a separate repo with private per-machine harness choice: `docs/assistant-tooling.md`
-- Phase 2 standalone Home Manager profile (parameterized username/home dir, portable modules only): `docs/home-manager.md`
+- Phase 2 Home Manager modules/profiles (parameterized, rollback via generations, nixos-config import surface): `docs/home-manager.md`
+- Home Manager is pinned to `release-26.05` with nixpkgs following this repo's pin; HM modules are plain HM modules (importable standalone and from NixOS-side HM) — never NixOS system modules.
 
 ## Sharp edges
 
 - `flake.lock` must always be committed with `flake.nix` changes; `nix flake lock` refuses to run until the flake files are `git add`-ed.
 - The flake's `nixConfig.experimental-features` is ignored on untrusted trees — the laptop setup doc therefore recommends the one-time `~/.config/nix/nix.conf` edit (`experimental-features = nix-command flakes`).
-- Package lists live only in `flake.nix` (mkShell routes `packages` to `nativeBuildInputs`); Phase 2 HM must import the same lists, not duplicate them.
-- Role split is defined by the flake's package lists — verify with the derivation's inputs (e.g. `nix derivation show`), not with `command -v` inside a shell on the desktop, whose host PATH contains both machines' tools.
+- Package lists live only in `lib/package-lists.nix` (devShells and Home Manager profiles import the same functions — never duplicate them in a module). The devShell routes `packages` to `nativeBuildInputs`.
+- Role split is defined by the package lists and the role profiles — verify with the derivation's inputs (e.g. `nix derivation show`) or `config.home.packages`, not with `command -v` inside a shell on the desktop, whose host PATH contains both machines' tools.
+- Flake evaluation is pure: `builtins.getEnv` returns "" in pure mode, so the flake cannot read `$USER`/`$HOME`. Parameterization is therefore a documented wrapper (`lib.mkStandalone`) and validation builds use `--impure` only to evaluate that factory with a throwaway test user.
+- `home-manager` CLI and configs must be the same release; the repo re-exports the pinned CLI as `packages.<system>.home-manager` for that reason. Home Manager git config lives in `~/.config/git/config` by design, so the local `~/.gitconfig` identity is never overwritten.
 
 ## Maintaining this file
 

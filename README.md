@@ -13,6 +13,12 @@ split changes only which Git hosting CLI is on `PATH` and which workflow is
 the documented default. Nothing in this repository touches desktop
 configuration, system services, or credentials.
 
+Since Phase 2 the flake also ships **portable Home Manager modules and
+role profiles** (same package lists, same role split) for persistent,
+generation-based activation — the laptop's daily environment once set up.
+The quick start below covers the ephemeral shells; docs/home-manager.md
+covers the Home Manager profile and its activation.
+
 ## Quick start
 
 ```bash
@@ -29,11 +35,23 @@ nix develop .#assistant
 # nix-direnv (both shell roles ship direnv + nix-direnv).
 ```
 
+For the persistent Home Manager profile (shell/starship/fzf/git-delta
+dotfiles plus the same package set, activated and rolled back by
+`home-manager switch` / `home-manager rollback`), see
+[docs/home-manager.md](docs/home-manager.md).
+
 ## What is inside
 
 ```
-flake.nix                  # two nixpkgs inputs (stable + unstable Pi lane), role devShells
+flake.nix                  # inputs (nixpkgs, nixpkgs-unstable, home-manager),
+                           # role devShells, homeManagerModules, lib.mkStandalone
 flake.lock                 # pinned revisions; Dependabot bumps weekly (docs/updates.md)
+lib/package-lists.nix      # single source of truth for the package lists (Phase 2)
+                           # consumed by both devShells and Home Manager profiles
+home/                      # portable Home Manager modules + role profiles (Phase 2)
+  modules/                 #   shell, git (structure only), dev, assistant (opt-in)
+  profiles/                #   laptop (glab) and desktop (gh) role profiles
+  standalone/              #   wrapper flake template for standalone activation
 README.md                  # this file
 AGENTS.md / CLAUDE.md      # agent memory for this repo (CLAUDE.md is a symlink)
 .envrc                     # direnv/nix-direnv entry for this repo's own development
@@ -43,9 +61,9 @@ docs/
   claude-code.md           # native install/update boundary + no-secrets rule
   git-workflow.md          # GitHub-read-only vs company-GitLab workflows per role
   updates.md               # update lanes and rollback
-  home-manager.md          # Phase 2: standalone, parameterized HM integration
+  home-manager.md          # Phase 2: portable, parameterized HM modules/profiles (live)
   assistant-tooling.md     # Pi (optional, llama.cpp fallback) + firstmate separation
-scripts/check.sh           # local validation gate (static checks + flake check + shell builds)
+scripts/check.sh           # local validation gate (static checks + flake check + builds)
 .github/dependabot.yml     # nix update lanes (weekly), no CI
 ```
 
@@ -67,20 +85,29 @@ scripts/check.sh           # local validation gate (static checks + flake check 
   `scripts/check.sh` before merge. Rollback is a lock revert.
 - **Local validation is the authoritative gate.** `scripts/check.sh`
   (static checks + `nix flake check` + non-activating builds of every
-  devShell) must pass before any PR is merged. CI is not configured and
-  not required. Direct PRs; merge approval stays with firstmate/captain.
+  devShell and both Home Manager role profiles) must pass before any PR
+  is merged. CI is not configured and not required. Direct PRs; merge
+  approval stays with firstmate/captain.
+- **`nix develop` is ephemeral; the Home Manager profile is persistent.**
+  Both consume the identical package lists (`lib/package-lists.nix`), so
+they cannot drift. The profile activation is generation-based with
+`home-manager rollback` (docs/home-manager.md).
 - **This is not the nixos-config repository.** No NixOS modules, hosts,
   desktop session config, or SSH-server setup from the MetaCube config
-  belongs here. The desktop consumes this project additively.
+  belongs here. The desktop consumes this project additively — the
+  exported `homeManagerModules` are the future integration point for a
+  nixos-config PR (docs/home-manager.md).
 
 ## Phase status
 
-- **Phase 1 (this repository today):** shared flake + role devShells +
-  docs + local validation. Claude Code and Pi are *not* Nix-managed;
-  see docs/claude-code.md and docs/assistant-tooling.md.
-- **Phase 2 (documented, not implemented):** standalone Home Manager
-  profile for the laptop (`homeConfigurations."<user>@laptop"`,
-  parameterized), wired to the same role split — see docs/home-manager.md.
+- **Phase 1 (bootstrap):** shared flake + role devShells + docs + local
+  validation. Claude Code and Pi are *not* Nix-managed; see
+  docs/claude-code.md and docs/assistant-tooling.md.
+- **Phase 2 (this change, implemented):** portable, parameterized Home
+  Manager modules and role profiles (`home/`, `lib/package-lists.nix`,
+  `lib.mkStandalone`, pinned home-manager input). Standalone activation
+  on the laptop, and mandatory import surface for the desktop's
+  nixos-config integration — see docs/home-manager.md.
 
 ## Workflow
 

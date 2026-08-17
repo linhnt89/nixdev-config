@@ -1,0 +1,37 @@
+# Template: personal wrapper flake for standalone Home Manager activation.
+#
+# Copy this file to ~/.config/home-manager/flake.nix on the machine you
+# want to activate (the home-manager CLI auto-discovers that path), fill
+# in the username/home directory, and run:
+#
+#   cd ~/.config/home-manager
+#   home-manager switch --flake .#laptop
+#
+# The attribute name is yours to choose; if you name it after your user
+# (e.g. `linhnt`, or `linhnt@<hostname>`), plain `home-manager switch`
+# with no flags works too. The CLI looks up `homeConfigurations.$NAME`
+# for `--flake .#$NAME` and `homeConfigurations.$USER` /
+# `homeConfigurations.$USER@$HOSTNAME` without an argument.
+#
+# Only this repo is needed as an input: the modules, profiles, package
+# lists, and the Home Manager pin all come from nixdev-config. The
+# parameters below are the only machine-specific values — nothing else
+# in this repo hard-codes a username or home path.
+#
+# See docs/home-manager.md for the full picture (activation,
+# generations/rollback, WSL2 systemd prerequisite, boundaries).
+{
+  # "path:" for a local checkout, "github:" for a remote one:
+  inputs.nixdev-config.url = "path:/path/to/nixdev-config";
+
+  outputs =
+    { nixdev-config, ... }:
+    {
+      homeConfigurations.laptop = nixdev-config.lib.mkStandalone {
+        username = "you";          # <- the actual WSL2/Linux username
+        homeDirectory = "/home/you"; # <- the actual home directory
+        role = "laptop";           # or "desktop" for the gh role
+        # extraModules = [ ... ];  # optional: add user-specific modules
+      };
+    };
+}

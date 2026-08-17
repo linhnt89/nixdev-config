@@ -8,15 +8,20 @@
 #      flake.lock, and a no-secrets scan of tracked files
 #   2. `nix flake check`
 #   3. NON-ACTIVATING builds of every devShell output
+#   4. NON-ACTIVATING builds of both Home Manager role profiles (laptop =
+#      glab, desktop = gh), built via the parameterized lib.mkStandalone
+#      factory with a throwaway test user
 #
-# It never activates, switches, or touches a machine: devShells are built
-# into the Nix store only. This is the local check every change — including
-# Dependabot PRs — must pass before merge. Remote CI is intentionally absent.
+# It never activates, switches, or touches a machine: everything is built
+# into the Nix store only. `home-manager switch` / `nixos-rebuild` are
+# deliberately NOT run here. This is the local check every change —
+# including Dependabot PRs — must pass before merge. Remote CI is
+# intentionally absent.
 #
 # Usage:
 #   scripts/check.sh [--skip-build] [-h|--help]
 #
-#   --skip-build  static checks + `nix flake check` only (no shell builds)
+#   --skip-build  static checks + `nix flake check` only (no shell or HM builds)
 #
 # Exit codes: 0 = all checks passed; nonzero = first failing check.
 #
@@ -37,7 +42,8 @@ usage() {
 Usage: scripts/check.sh [--skip-build] [-h|--help]
 
 Local validation gate: static checks, `nix flake check`, and non-activating
-builds of every devShell. Never activates or switches anything.
+builds of every devShell and both Home Manager role profiles. Never
+activates or switches anything.
 
   --skip-build  static checks + `nix flake check` only
   -h, --help    show this help
@@ -74,7 +80,7 @@ with_tool() {
 echo '==> Static checks'
 
 echo '  required layout:'
-for f in flake.nix flake.lock README.md scripts/check.sh docs; do
+for f in flake.nix flake.lock README.md scripts/check.sh lib/package-lists.nix home docs; do
   if [[ -e "$f" ]]; then
     echo "    ok $f"
   else
@@ -164,6 +170,28 @@ else
     echo "    nix build .#devShells.$system.$shell"
     nix build --no-link ".#devShells.$system.$shell"
   done
+
+  # Home Manager role profiles, built non-activating through the
+  # parameterized lib.mkStandalone factory with a throwaway test user.
+  # This evaluates both role splits (laptop=glab, desktop=gh) and builds
+  # each generation's activation package without ever running it.
+  echo '==> Building Home Manager role profiles (never activates or switches)'
+  nix build --no-link --impure --expr '
+    let
+      flake = builtins.getFlake (toString ./.);
+      mkProfile = role:
+        (flake.lib.mkStandalone {
+          username = "nixdev-check";
+          homeDirectory = "/home/nixdev-check";
+          inherit role;
+        }).activationPackage;
+    in
+    [
+      (mkProfile "laptop") # glab role (work WSL2 laptop)
+      (mkProfile "desktop") # gh role (MetaCube desktop)
+    ]
+  '
+  echo "    ok home profiles (laptop + desktop) built non-activating"
 fi
 
 if [[ $failures -ne 0 ]]; then
