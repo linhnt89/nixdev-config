@@ -19,6 +19,14 @@
     # packages come from the exact same nixpkgs revision (no drift).
     home-manager.url = "github:nix-community/home-manager/release-26.05";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
+
+    # Firstmate toolchain sources (docs/firstmate.md). treehouse is pinned to
+    # the upstream flake at tag v2.1.1 (Go source build, Nix-patched so it
+    # runs on NixOS); its nixpkgs follows the unstable lane. herdr and
+    # no-mistakes use pinned release assets inside lib/firstmate.nix instead
+    # (statically linked binaries, no flake input needed).
+    treehouse.url = "github:kunchenguid/treehouse/v2.1.1";
+    treehouse.inputs.nixpkgs.follows = "nixpkgs-unstable";
   };
 
   # So a freshly installed Nix on the laptop works out of the box.
@@ -35,6 +43,7 @@
       nixpkgs,
       nixpkgs-unstable,
       home-manager,
+      treehouse,
     }:
     let
       supportedSystems = [
@@ -46,8 +55,18 @@
 
       # Single source of truth for every package list: devShells, the
       # Home Manager profiles, and the exported role modules all read
-      # from lib/package-lists.nix.
+      # from lib/package-lists.nix. The optional Firstmate toolchain lives
+      # in its own shared lib (lib/firstmate.nix) because it needs the npm
+      # lockfile root and pinned external binaries, not just pkgs.
       packageLists = import ./lib/package-lists.nix;
+
+      # Resolves the shared Firstmate toolchain for a system: same pieces
+      # for the devShell and the Home Manager module (no drift).
+      firstmateTools = system:
+        import ./lib/firstmate.nix {
+          pkgs = nixpkgs.legacyPackages.${system};
+          treehousePkg = treehouse.packages.${system}.default;
+        };
 
       mkShell = pkgs: packages: banner: 
         pkgs.mkShell {
@@ -74,6 +93,8 @@
           pkgs = nixpkgs.legacyPackages.${system};
           extraSpecialArgs = {
             pkgsUnstable = nixpkgs-unstable.legacyPackages.${system};
+            # The pinned treehouse package for this system (Firstmate module).
+            treehousePkg = treehouse.packages.${system}.default;
           };
           modules = [
             {
@@ -95,6 +116,7 @@
           pkgs = nixpkgs.legacyPackages.${system};
           pkgsUnstable = nixpkgs-unstable.legacyPackages.${system};
           laptopShell = mkShell pkgs (packageLists.laptopPackages pkgs) packageLists.banners.laptop;
+          firstmateShell = firstmateTools system;
         in
         {
           # `nix develop` / direnv default = the laptop role.
@@ -104,6 +126,10 @@
           desktop = mkShell pkgs (packageLists.desktopPackages pkgs) packageLists.banners.desktop;
 
           assistant = mkShell pkgs (packageLists.assistantPackages pkgsUnstable) packageLists.banners.assistant;
+
+          # Ephemeral Firstmate toolchain (same build as the opt-in Home
+          # Manager profile — lib/firstmate.nix is the single source).
+          firstmate = mkShell pkgs firstmateShell.packages firstmateShell.banner;
         }
       );
 
@@ -125,8 +151,10 @@
         git = ./home/modules/git.nix;
         dev = ./home/modules/dev.nix;
         assistant = ./home/modules/assistant.nix; # opt-in, unconfigured
+        firstmateTools = ./home/modules/firstmate.nix; # opt-in toolchain layer
         laptop = ./home/profiles/laptop.nix; # complete glab role profile
         desktop = ./home/profiles/desktop.nix; # complete gh role profile
+        firstmate = ./home/profiles/firstmate.nix; # opt-in firstmate role profile
       };
 
       # Parameterized standalone factory: builds a Home Manager
@@ -151,7 +179,8 @@
           profile =
             if role == "laptop" then ./home/profiles/laptop.nix
             else if role == "desktop" then ./home/profiles/desktop.nix
-            else throw "nixdev-config: unknown role '${role}' — expected 'laptop' or 'desktop'";
+            else if role == "firstmate" then ./home/profiles/firstmate.nix
+            else throw "nixdev-config: unknown role '${role}' — expected 'laptop', 'desktop', or 'firstmate'";
         in
         mkHomeConfiguration {
           inherit username homeDirectory system;

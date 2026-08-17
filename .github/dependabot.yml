@@ -12,7 +12,17 @@
 #     so the Pi lane still moves deliberately, like the desktop convention.
 #     It can still receive its own individual PRs; review those like any
 #     other update.
-#   - No npm lane: this repo ships no package.json.
+#   - treehouse (Firstmate worktree provider, flake pinned at tag v2.1.1):
+#     also NOT grouped — the Firstmate tool lane moves deliberately
+#     (docs/updates.md, docs/firstmate.md).
+#   - npm lane for /firstmate/node-tools: the five pinned Firstmate axi CLIs
+#     (gh-axi, chrome-devtools-axi, lavish-axi, tasks-axi, quota-axi) get
+#     automated npm update PRs (version + lockfile together). Nix consumes
+#     the lockfile via importNpmLock, so every npm PR must pass
+#     scripts/check.sh and clear the Firstmate bootstrap floors
+#     (docs/updates.md, docs/firstmate.md).
+#   - The URL/SRI-pinned no-mistakes/herdr release assets in lib/firstmate.nix
+#     are NOT Dependabot-tracked; they move via deliberate version+hash edits.
 version: 2
 updates:
   - package-ecosystem: "nix"
@@ -33,3 +43,15 @@ updates:
           - "home-manager"
         exclude-patterns:
           - "nixpkgs-unstable"
+  - package-ecosystem: "npm"
+    directory: "/firstmate/node-tools"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Asia/Ho_Chi_Minh"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "npm"
+    versioning-strategy: increase

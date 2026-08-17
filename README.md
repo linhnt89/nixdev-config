@@ -31,6 +31,9 @@ nix develop .#desktop      # -> desktop role shell (gh)
 # Either machine, optional assistant shell (Pi, no provider/model configured)
 nix develop .#assistant
 
+# Either machine, optional Firstmate toolchain (pinned; see docs/firstmate.md)
+nix develop .#firstmate
+
 # Use direnv instead: add `use flake` to a project's .envrc after installing
 # nix-direnv (both shell roles ship direnv + nix-direnv).
 ```
@@ -38,7 +41,12 @@ nix develop .#assistant
 For the persistent Home Manager profile (shell/starship/fzf/git-delta
 dotfiles plus the same package set, activated and rolled back by
 `home-manager switch` / `home-manager rollback`), see
-[docs/home-manager.md](docs/home-manager.md).
+[docs/home-manager.md](docs/home-manager.md). For the **opt-in Firstmate
+toolchain profile** (the binaries Firstmate's bootstrap needs, for a machine
+that runs Firstmate), see [docs/firstmate.md](docs/firstmate.md) — tools
+only; the Firstmate source is public at
+<https://github.com/kunchenguid/firstmate> and its per-machine
+`data/`/`state/`/`config/`/`projects/` stay in the machine's private home.
 
 ## What is inside
 
@@ -48,9 +56,12 @@ flake.nix                  # inputs (nixpkgs, nixpkgs-unstable, home-manager),
 flake.lock                 # pinned revisions; Dependabot bumps weekly (docs/updates.md)
 lib/package-lists.nix      # single source of truth for the package lists (Phase 2)
                            # consumed by both devShells and Home Manager profiles
+lib/firstmate.nix          # shared Firstmate toolchain builders (Phase 3, docs/firstmate.md)
+firstmate/node-tools/      # pinned Firstmate axi CLIs (package.json + package-lock.json)
 home/                      # portable Home Manager modules + role profiles (Phase 2)
-  modules/                 #   shell, git (structure only), dev, assistant (opt-in)
-  profiles/                #   laptop (glab) and desktop (gh) role profiles
+  modules/                 #   shell, git (structure only), dev, assistant (opt-in),
+                           #   firstmateTools (opt-in Firstmate toolchain)
+  profiles/                #   laptop (glab), desktop (gh), firstmate (opt-in) profiles
   standalone/              #   wrapper flake template for standalone activation
 README.md                  # this file
 AGENTS.md / CLAUDE.md      # agent memory for this repo (CLAUDE.md is a symlink)
@@ -63,6 +74,7 @@ docs/
   updates.md               # update lanes and rollback
   home-manager.md          # Phase 2: portable, parameterized HM modules/profiles (live)
   assistant-tooling.md     # Pi (optional, llama.cpp fallback) + firstmate separation
+  firstmate.md             # Phase 3: opt-in Firstmate toolchain (tools only, pinned)
 scripts/check.sh           # local validation gate (static checks + flake check + builds)
 .github/dependabot.yml     # nix update lanes (weekly), no CI
 ```
@@ -80,6 +92,9 @@ scripts/check.sh           # local validation gate (static checks + flake check 
   shared base environment never installs the same Git hosting CLI for both
   roles. GitHub on the laptop is read-only (public sources), on demand via
   `nix shell nixpkgs#gh` — company GitLab is the laptop's push/pull home.
+  The opt-in Firstmate profile is the documented exception: importing it
+  adds `gh` because Firstmate requires it (docs/firstmate.md) — it never
+  alters the default roles.
 - **Reproducible and mine to update.** `flake.lock` pins everything;
   updates move via Dependabot PRs or `nix flake update`, validated by
   `scripts/check.sh` before merge. Rollback is a lock revert.
@@ -108,6 +123,9 @@ they cannot drift. The profile activation is generation-based with
   `lib.mkStandalone`, pinned home-manager input). Standalone activation
   on the laptop, and mandatory import surface for the desktop's
   nixos-config integration — see docs/home-manager.md.
+- **Phase 3 (this change, implemented):** the opt-in Firstmate toolchain
+  (Home Manager module/profile + `devShells.firstmate`), pinned and
+  validated — see docs/firstmate.md.
 
 ## Workflow
 

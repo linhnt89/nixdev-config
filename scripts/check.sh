@@ -8,8 +8,9 @@
 #      flake.lock, and a no-secrets scan of tracked files
 #   2. `nix flake check`
 #   3. NON-ACTIVATING builds of every devShell output
-#   4. NON-ACTIVATING builds of both Home Manager role profiles (laptop =
-#      glab, desktop = gh), built via the parameterized lib.mkStandalone
+#   4. NON-ACTIVATING builds of the Home Manager role profiles (laptop =
+#      glab, desktop = gh, optional firstmate = the Firstmate toolchain incl.
+#      a herdr-enabled variant), built via the parameterized lib.mkStandalone
 #      factory with a throwaway test user
 #
 # It never activates, switches, or touches a machine: everything is built
@@ -42,8 +43,8 @@ usage() {
 Usage: scripts/check.sh [--skip-build] [-h|--help]
 
 Local validation gate: static checks, `nix flake check`, and non-activating
-builds of every devShell and both Home Manager role profiles. Never
-activates or switches anything.
+builds of every devShell and the Home Manager role profiles (laptop,
+desktop, firstmate). Never activates or switches anything.
 
   --skip-build  static checks + `nix flake check` only
   -h, --help    show this help
@@ -166,7 +167,7 @@ if [[ "$skip_build" == 1 ]]; then
 else
   echo '==> Building devShell outputs (never activates or switches)'
   system="$(nix eval --raw --impure --expr 'builtins.currentSystem')"
-  for shell in default desktop assistant; do
+  for shell in default desktop assistant firstmate; do
     echo "    nix build .#devShells.$system.$shell"
     nix build --no-link ".#devShells.$system.$shell"
   done
@@ -189,9 +190,19 @@ else
     [
       (mkProfile "laptop") # glab role (work WSL2 laptop)
       (mkProfile "desktop") # gh role (MetaCube desktop)
+      (mkProfile "firstmate") # opt-in firstmate toolchain role (tmux backend)
+    ]
+    # The opt-in herdr backend also builds (pinned release binary):
+    ++ [
+      (flake.lib.mkStandalone {
+        username = "nixdev-check";
+        homeDirectory = "/home/nixdev-check";
+        role = "firstmate";
+        extraModules = [ { nixdev.firstmate.enableHerdr = true; } ];
+      }).activationPackage
     ]
   '
-  echo "    ok home profiles (laptop + desktop) built non-activating"
+  echo "    ok home profiles (laptop + desktop + firstmate ± herdr) built non-activating"
 fi
 
 if [[ $failures -ne 0 ]]; then

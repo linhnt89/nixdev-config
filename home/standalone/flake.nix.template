@@ -30,7 +30,9 @@
       homeConfigurations.laptop = nixdev-config.lib.mkStandalone {
         username = "you";          # <- the actual WSL2/Linux username
         homeDirectory = "/home/you"; # <- the actual home directory
-        role = "laptop";           # or "desktop" for the gh role
+        role = "laptop";           # or "desktop" for the gh role, or
+        #                        #   "firstmate" for the opt-in Firstmate
+        #                        #   toolchain (docs/firstmate.md)
         # extraModules = [ ... ];  # optional: add user-specific modules
       };
     };
