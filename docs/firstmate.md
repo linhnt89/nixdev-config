@@ -1,10 +1,11 @@
 # Firstmate toolchain profile (opt-in)
 
 Firstmate is the autonomous worker agent that manages this repository's
-sibling projects. Its **source is public** at
-<https://github.com/kunchenguid/firstmate>; each machine keeps a clone
+sibling projects. Its **source is public**: the machine clone origin is
+<https://github.com/linhnt89/firstmate> (a fork), whose upstream is
+<https://github.com/kunchenguid/firstmate>. Each machine keeps a clone
 ("the Firstmate home", on the MetaCube desktop `/home/linhnt/firstmate`)
-whose tracked files are that public source and whose gitignored `data/`,
+whose tracked files come from that fork and whose gitignored `data/`,
 `state/`, `config/`, `projects/` directories are **private per-machine
 content** (auth, harness choice, project clones, tokens). **None of that
 lives in nixdev-config.** This flake only offers an optional, portable
@@ -156,16 +157,20 @@ match by design.
 
 ## After enabling: clone Firstmate and run its bootstrap
 
-The profile installs *tools only*. Firstmate itself is the public
-<https://github.com/kunchenguid/firstmate> source, cloned and bootstrapped
-per machine:
+The profile installs *tools only*. Firstmate itself is a clone of the
+machine fork origin <https://github.com/linhnt89/firstmate> (upstream:
+<https://github.com/kunchenguid/firstmate>), bootstrapped per machine:
 
 ```bash
-# 1. clone the public Firstmate source (it is not private). On the MetaCube
-#    desktop the portable home is /home/linhnt/firstmate; on the laptop,
-#    clone it wherever that machine keeps its Firstmate home (e.g. 
-#    ~/firstmate; keep it out of Nix-managed dirs):
-git clone https://github.com/kunchenguid/firstmate /home/linhnt/firstmate
+# 1. clone the machine fork (both the fork and its upstream are public —
+#    nothing here is a private repo). On the MetaCube desktop the
+#    portable home is /home/linhnt/firstmate; on the laptop, clone it
+#    wherever that machine keeps its Firstmate home (e.g. ~/firstmate;
+#    keep it out of Nix-managed dirs):
+git clone https://github.com/linhnt89/firstmate /home/linhnt/firstmate
+cd /home/linhnt/firstmate
+#    add the public upstream so fixes that land there can be pulled in:
+git remote add upstream https://github.com/kunchenguid/firstmate
 #    data/ state/ config/ projects/ inside that home are gitignored
 #    per-machine content (auth, harness choice, project clones) — never
 #    part of this repo or its Nix profile.
@@ -173,7 +178,7 @@ git clone https://github.com/kunchenguid/firstmate /home/linhnt/firstmate
 # 2. the bootstrap detects what is missing given the toolchain the profile
 #    now provides (node, git, gh, tmux, jq, the axi CLIs, treehouse,
 #    no-mistakes are already present — it will mostly report auth):
-cd /home/linhnt/firstmate && bin/fm-bootstrap.sh
+bin/fm-bootstrap.sh
 
 # 3. approve the automatic installs it asks for, then authenticate GitHub:
 gh auth login          # stores credentials in ~/.config/gh — never in Nix
@@ -181,6 +186,20 @@ gh auth login          # stores credentials in ~/.config/gh — never in Nix
 # 4. daily entry:
 bin/fm-session-start.sh
 ```
+
+Syncing the machine clone later (origin is the fork, upstream is
+kunchenguid/firstmate):
+
+```bash
+cd /home/linhnt/firstmate
+git pull                          # pull your own fork's tracked updates
+git fetch --all                   # or fetch everything, incl. upstream
+git merge upstream/main           # bring in kunchenguid/firstmate fixes
+```
+
+Merging tracked files never touches the gitignored per-machine `data/`,
+`state/`, `config/`, `projects/` directories — they stay local to each
+machine's home.
 
 Claude Code, the primary assistant, stays a **native install** (see
 docs/claude-code.md): it is deliberately not Nix-pinned so it can update on

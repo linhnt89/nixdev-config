@@ -44,8 +44,9 @@ dotfiles plus the same package set, activated and rolled back by
 [docs/home-manager.md](docs/home-manager.md). For the **opt-in Firstmate
 toolchain profile** (the binaries Firstmate's bootstrap needs, for a machine
 that runs Firstmate), see [docs/firstmate.md](docs/firstmate.md) — tools
-only; the Firstmate source is public at
-<https://github.com/kunchenguid/firstmate> and its per-machine
+only; the Firstmate machine clone origin is
+<https://github.com/linhnt89/firstmate> (upstream:
+<https://github.com/kunchenguid/firstmate>) and its per-machine
 `data/`/`state/`/`config/`/`projects/` stay in the machine's private home.
 
 ## What is inside

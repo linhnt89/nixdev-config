@@ -39,13 +39,14 @@ installer and `~/.claude/`.
 
 ## Firstmate — public source, private per-machine home
 
-- Firstmate's **source is public** at <https://github.com/kunchenguid/firstmate>;
-  the machine's deployed home (on the MetaCube desktop `/home/linhnt/firstmate`)
-  is a clone of that public source plus its **private per-machine content** in
-  gitignored `data/`, `state/`, `config/`, `projects/` — auth, harness choice,
-  project clones, tokens. **Nothing of that lives in this project**: no
-  `data/`, `state/`, `config/`, credentials, or desktop dispatch settings are
-  tracked here.
+- Firstmate's **source is public**: machines clone the
+  <https://github.com/linhnt89/firstmate> fork (upstream:
+  <https://github.com/kunchenguid/firstmate>). The machine's deployed home
+  (on the MetaCube desktop `/home/linhnt/firstmate`) is a clone of that
+  fork plus its **private per-machine content** in gitignored `data/`,
+  `state/`, `config/`, `projects/` — auth, harness choice, project clones,
+  tokens. **Nothing of that lives in this project**: no `data/`, `state/`,
+  `config/`, credentials, or desktop dispatch settings are tracked here.
 - This flake ships an **optional, opt-in Firstmate toolchain** (the binaries
   Firstmate's bootstrap needs, with pinned versions) as a Home Manager
   module/profile and a devShell — tools only, never the Firstmate source or
