@@ -35,10 +35,18 @@ nix develop .#assistant
 # nix-direnv (both shell roles ship direnv + nix-direnv).
 ```
 
+# Laptop companion lane: update the standalone Home Manager profile
+# (fast-forward the checkout, build; activate only with --switch)
+scripts/update-home-manager.sh --dry-run     # read-only preflight
+scripts/update-home-manager.sh               # fast-forward + build, no activation
+scripts/update-home-manager.sh --switch      # ...and activate (opt-in)
+
 For the persistent Home Manager profile (shell/starship/fzf/git-delta
 dotfiles plus the same package set, activated and rolled back by
 `home-manager switch` / `home-manager rollback`), see
-[docs/home-manager.md](docs/home-manager.md).
+[docs/home-manager.md](docs/home-manager.md) — including the
+`scripts/update-home-manager.sh` companion update/apply lane described
+there.
 
 ## What is inside
 
@@ -63,7 +71,10 @@ docs/
   updates.md               # update lanes and rollback
   home-manager.md          # Phase 2: portable, parameterized HM modules/profiles (live)
   assistant-tooling.md     # Pi (optional, llama.cpp fallback) + firstmate separation
-scripts/check.sh           # local validation gate (static checks + flake check + builds)
+scripts/check.sh           # local validation gate (static checks + regression tests + flake check + builds)
+scripts/update-home-manager.sh  # Laptop companion lane: fast-forward checkout, re-lock wrapper,
+                             # build/switch the standalone HM profile (activation opt-in — docs/home-manager.md)
+tests/run-tests.sh         # offline regression tests for the companion lane (fixture repos + fake nix)
 .github/dependabot.yml     # nix update lanes (weekly), no CI
 ```
 

@@ -19,7 +19,9 @@
 # in this repo hard-codes a username or home path.
 #
 # See docs/home-manager.md for the full picture (activation,
-# generations/rollback, WSL2 systemd prerequisite, boundaries).
+# generations/rollback, WSL2 systemd prerequisite, boundaries) and for the
+# companion update/apply lane: scripts/update-home-manager.sh fast-forwards
+# this checkout, re-locks this flake, builds, and switches only with --switch.
 {
   # "path:" for a local checkout, "github:" for a remote one:
   inputs.nixdev-config.url = "path:/path/to/nixdev-config";
