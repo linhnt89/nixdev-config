@@ -1,0 +1,32 @@
+# Dependabot version updates for nixdev-config.
+#
+# One targeted PR per dependency lane. Every PR is validated locally with
+# scripts/check.sh before merge. CI is intentionally absent: there are no
+# workflows, and local validation is the authoritative gate.
+#
+# Lane notes:
+#   - nixpkgs (stable, nixos-26.05): the common + role shell packages.
+#   - nixpkgs-unstable (Pi assistant lane): excluded from the stable group
+#     so the Pi lane still moves deliberately, like the desktop convention.
+#     It can still receive its own individual PRs; review those like any
+#     other update.
+#   - No npm lane: this repo ships no package.json in Phase 1.
+version: 2
+updates:
+  - package-ecosystem: "nix"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Asia/Ho_Chi_Minh"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "nix"
+    groups:
+      stable-lane:
+        patterns:
+          - "nixpkgs"
+        exclude-patterns:
+          - "nixpkgs-unstable"
