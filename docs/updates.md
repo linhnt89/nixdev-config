@@ -31,7 +31,7 @@ docs/home-manager.md). One nixpkgs pin covers both surfaces.
 | Laptop standalone HM (companion lane) | local `path:` checkout + the wrapper's `flake.lock` | `scripts/update-home-manager.sh` — fast-forward the checkout, re-lock the wrapper input, build, opt-in `--switch`; rollback = wrapper lock backup + `home-manager rollback` (docs/home-manager.md) |
 | Firstmate — treehouse | `treehouse` input (flake pinned at tag `v2.1.1`, its nixpkgs follows `nixpkgs-unstable`) | Dependabot individual PR (deliberate, not grouped) or `nix flake update treehouse`; docs/firstmate.md |
 | Firstmate — axi CLIs | `firstmate/node-tools/package.json` + `package-lock.json` | Dependabot npm-lane PR for `firstmate/node-tools` (weekly); validated with `scripts/check.sh` |
-| Firstmate — no-mistakes / herdr | pinned release assets in `lib/firstmate.nix` (URL + SRI) | Manual deliberate bump (version + URL + hash edit); not Dependabot-tracked |
+| Firstmate — no-mistakes / herdr / crew-watch | pinned release assets / source pin in `lib/firstmate.nix` (URL + SRI; rev + source/cargo hashes) | Manual deliberate bump (version + URL + hash edit); not Dependabot-tracked |
 
 The desktop PC has its own separate lane,
 `nixos-config/scripts/update-nixdev-config.sh`, which updates the
@@ -41,7 +41,8 @@ nixdev-config flake input there; it is not part of this repository.
 moves only when an assistant-tooling update is actually wanted, not silently
 with every stable bump. The same deliberate-lane policy applies to `treehouse`
 (the Firstmate worktree provider) and to the URL/SRI-pinned release assets
-(no-mistakes, herdr): those need a version+hash edit and are never auto-bumped
+(no-mistakes, herdr) and the source-pinned crew-watch build: those need a
+version+hash edit and are never auto-bumped
 — mirroring how Firstmate's own installers pin release assets (docs/
 firstmate.md). The pinned axi CLIs are the exception: they move via Dependabot's
 npm lane for `firstmate/node-tools`, and every bump PR is validated with
