@@ -39,11 +39,16 @@ profiles via `home.packages` and `programs.*` package options).
 | `homeManagerModules.desktop` / `lib.mkStandalone { role = "desktop" }` | desktop / personal | `gh` (GitHub) | later nixos-config PR, or any Linux box |
 | `homeManagerModules.shell` / `.git` / `.dev` | common | — | imported by both roles, or individually by consumers |
 | `homeManagerModules.assistant` | optional Pi | — | opt-in; no provider/model credentials |
+| `homeManagerModules.firstmate` / `lib.mkStandalone { role = "firstmate" }` | optional Firstmate toolchain | adds `gh` (required by Firstmate) | opt-in on either machine; docs/firstmate.md |
+| `homeManagerModules.firstmateTools` | Firstmate toolchain layer | adds `gh` | compose onto an existing role profile; docs/firstmate.md |
 
 The role split is preserved exactly: the laptop profile installs `glab`
 and **never** `gh`; the desktop profile installs `gh` and **never**
 `glab`. GitHub on the laptop stays read-only and on demand
-(`nix shell nixpkgs#gh`, docs/git-workflow.md).
+(`nix shell nixpkgs#gh`, docs/git-workflow.md). The Firstmate profile is the
+documented exception: importing it is the explicit choice that also adds
+`gh` (Firstmate requires it) — the default roles above are never altered by
+it (docs/firstmate.md).
 
 ## Flake outputs
 
@@ -53,6 +58,10 @@ and **never** `gh`; the desktop profile installs `gh` and **never**
   the parameterized factory for standalone activation (below).
 - `packages.<system>.home-manager` — the home-manager CLI, pinned to this
   repo's home-manager input (`nix run .#home-manager`).
+- `packages.<system>.treehouse` — the pinned Firstmate worktree provider
+  (docs/firstmate.md); the documented package export for external Home
+  Manager consumers of `homeManagerModules.firstmateTools` (pass it via
+  explicit `extraSpecialArgs` — no second treehouse flake input).
 - `devShells.*` — unchanged from Phase 1, now fed from the same package
   lists the profiles use.
 
@@ -76,7 +85,9 @@ that path) and fill in the three parameters:
     homeConfigurations.laptop = nixdev-config.lib.mkStandalone {
       username = "you";          # <- the actual WSL2 username
       homeDirectory = "/home/you"; # <- the actual home path
-      role = "laptop";           # or "desktop" for the gh role
+      role = "laptop";           # or "desktop" for the gh role (or
+      #                        "firstmate" for the opt-in Firstmate
+      #                        toolchain, docs/firstmate.md)
     };
   };
 }
