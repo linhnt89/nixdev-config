@@ -114,7 +114,10 @@ homeConfigurations.laptop = nixdev-config.lib.mkStandalone {
 
 Both are independent of each other — pick exactly one attribute per machine.
 With option 2 the resulting activation has `glab` *and* `gh`; that is the
-explicit opt-in the profile represents.
+explicit opt-in the profile represents. Neither option declares a treehouse
+input or an `extraSpecialArgs` — the standalone factory wires the exported
+`packages.${system}.treehouse` internally. Only an external NixOS-style
+caller (next section) passes the export explicitly.
 
 Add the Herdr backend with an extra module (either option):
 
@@ -132,6 +135,25 @@ cd ~/.config/home-manager
 home-manager switch --flake .#firstmate   # or .#laptop with option 2
 ```
 
+## Public package export (one treehouse pin, zero consumer inputs)
+
+The pinned treehouse package is exported from this flake as
+**`packages.${system}.treehouse`** (same derivation the standalone factory and
+the devShell use — `lib/firstmate.nix` and `packageLists` are the single
+sources, so there is exactly one treehouse pin in the dependency tree):
+
+- `lib.mkStandalone` wires it automatically — the standalone laptop flow
+  never needs to mention it.
+- **External Home Manager consumers (nixos-config) get it from this flake's
+  public outputs and pass it through explicit `extraSpecialArgs`.** No
+  consumer declares its own treehouse flake input, so nixos-config ends up
+  with a single `nixdev-config` input for the whole Firstmate toolchain.
+- Package ownership stays here (the pins in `flake.lock` and
+  `lib/firstmate.nix`); machine-owned Treehouse **capacity** — its
+  workspaces/sessions/state under the machine home, and whatever Firstmate
+  home/runtime settings the machine keeps — stays consumer-owned and is
+  never declared in this flake.
+
 ## Enabling it — desktop (NixOS-side Home Manager)
 
 The desktop consumes this flake through nixos-config (the integration PR
@@ -140,6 +162,12 @@ surface this repo guarantees:
 
 ```nix
 # nixos-config side (later PR): home-manager.users.<name> = { ... };
+# The module needs the pinned treehouse package, supplied from THIS flake's
+# public output via extraSpecialArgs — no second treehouse flake input:
+home-manager.extraSpecialArgs = {
+  treehousePkg = nixdev-config.packages.${pkgs.system}.treehouse;
+};
+
 home-manager.users.linhnt = {
   imports = [
     nixdev-config.homeManagerModules.desktop   # gh role, as today
@@ -153,7 +181,9 @@ home-manager.users.linhnt = {
 toolchain); `homeManagerModules.firstmateTools` is just the toolchain layer
 for composing onto the existing desktop/laptop profile. The desktop's own
 local firstmate module in nixos-config can be replaced by this one; versions
-match by design.
+match by design. The same call shape — public module + exported package via
+explicit `extraSpecialArgs` — is regression-tested offline by
+`scripts/check.sh` (external-consumer build, tmux ± herdr variants).
 
 ## After enabling: clone Firstmate and run its bootstrap
 
@@ -221,6 +251,9 @@ touched by this profile.
     `lib/firstmate.nix` (hashes from the upstream release checksums).
   - `treehouse`: bump the `treehouse.url` ref in `flake.nix` and re-lock
     (`nix flake lock treehouse`); it follows the `nixpkgs-unstable` lane.
+    The exported `packages.${system}.treehouse` reflects the input
+    automatically — consumers inherit the bump with no lock change of
+    their own.
 - Dependabot opens weekly PRs per lane: the nix stable lane (grouped), the
   `nixpkgs-unstable` and `treehouse` lanes (deliberate, not grouped), and an
   npm lane for `firstmate/node-tools` (the pinned axi CLIs). The URL/SRI
@@ -241,3 +274,11 @@ home. Runtime state belongs to the machine (`~/.config/gh`, `~/.ssh`,
 `~/.claude`, `~/.pi/agent`, the Firstmate home). The no-secrets scan in
 `scripts/check.sh` enforces the same boundary repo-wide
 ([assistant-tooling.md](assistant-tooling.md)).
+
+**Package vs configuration ownership.** This flake owns the pinned packages
+(`packages.${system}.treehouse`, `lib/firstmate.nix` assets, the devShell and
+the profile wiring around them). It does **not** own any machine's Treehouse
+capacity — Treehouse workspaces/sessions and their state under the machine
+home are consumer-owned — nor any Firstmate home/runtime setting. Consumers
+get the package from the public export and keep their capacity/config
+machine-local; nothing here reads or writes either.

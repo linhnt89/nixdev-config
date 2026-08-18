@@ -141,7 +141,10 @@ let
   # to the upstream flake at tag v2.1.1 (Go source build — patched for NixOS,
   # unlike the raw release archive which is glibc-dynamic and would not run on
   # the MetaCube NixOS PC without nix-ld; the desktop's nixos-config uses the
-  # same flake). The flake input itself is pinned in flake.lock.
+  # same flake). The flake input itself is pinned in flake.lock, and the
+  # resulting package is exported to consumers as `packages.${system}.treehouse`
+  # (docs/firstmate.md) — a consumer passes that export to this module via
+  # extraSpecialArgs, never a second treehouse flake input.
   treehouse = treehousePkg;
 
   # herdr: OPTIONAL session-provider CLI (only installed when

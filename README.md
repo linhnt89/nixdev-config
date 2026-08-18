@@ -48,16 +48,25 @@ only; the Firstmate machine clone origin is
 <https://github.com/linhnt89/firstmate> (upstream:
 <https://github.com/kunchenguid/firstmate>) and its per-machine
 `data/`/`state/`/`config/`/`projects/` stay in the machine's private home.
+The pinned treehouse worktree provider is exported as
+`packages.<system>.treehouse`, so downstream Home Manager consumers pass
+the package through explicit `extraSpecialArgs` with no second treehouse
+flake input of their own (docs/firstmate.md).
 
 ## What is inside
 
 ```
-flake.nix                  # inputs (nixpkgs, nixpkgs-unstable, home-manager),
-                           # role devShells, homeManagerModules, lib.mkStandalone
+flake.nix                  # inputs (nixpkgs, nixpkgs-unstable, home-manager,
+                           # treehouse), role devShells, packages outputs
+                           # (home-manager + treehouse export), homeManagerModules,
+                           # lib.mkStandalone
 flake.lock                 # pinned revisions; Dependabot bumps weekly (docs/updates.md)
 lib/package-lists.nix      # single source of truth for the package lists (Phase 2)
                            # consumed by both devShells and Home Manager profiles
 lib/firstmate.nix          # shared Firstmate toolchain builders (Phase 3, docs/firstmate.md)
+                           # incl. the pinned no-mistakes/herdr release assets;
+                           # treehouse comes from the flake input and is exported
+                           # as packages.<system>.treehouse
 firstmate/node-tools/      # pinned Firstmate axi CLIs (package.json + package-lock.json)
 home/                      # portable Home Manager modules + role profiles (Phase 2)
   modules/                 #   shell, git (structure only), dev, assistant (opt-in),
