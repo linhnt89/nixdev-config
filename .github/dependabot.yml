@@ -1,8 +1,12 @@
 # Dependabot version updates for nixdev-config.
 #
-# One targeted PR per dependency lane. Every PR is validated locally with
-# scripts/check.sh before merge. CI is intentionally absent: there are no
-# workflows, and local validation is the authoritative gate.
+# One targeted PR per dependency lane. Local validation with
+# scripts/check.sh is the authoritative gate; CI is intentionally absent.
+# The repository's only workflow is the Dependabot auto-merge helper
+# (.github/workflows/dependabot-automerge.yml, docs/updates.md): eligible
+# bot PRs (author dependabot[bot], base = default branch) get squash
+# auto-merge enabled and may merge promptly when no required checks are
+# configured.
 #
 # Lane notes:
 #   - nixpkgs (stable, nixos-26.05) + home-manager (release-26.05,
@@ -10,17 +14,18 @@
 #     the Home Manager modules/profiles.
 #   - nixpkgs-unstable (Pi assistant lane): excluded from the stable group
 #     so the Pi lane still moves deliberately, like the desktop convention.
-#     It can still receive its own individual PRs; review those like any
-#     other update.
+#     It can still receive its own individual PRs; like every bot PR they
+#     are auto-merged by the helper (docs/updates.md).
 #   - treehouse (Firstmate worktree provider, flake pinned at tag v2.1.1):
 #     also NOT grouped — the Firstmate tool lane moves deliberately
 #     (docs/updates.md, docs/firstmate.md).
 #   - npm lane for /firstmate/node-tools: the five pinned Firstmate axi CLIs
 #     (gh-axi, chrome-devtools-axi, lavish-axi, tasks-axi, quota-axi) get
 #     automated npm update PRs (version + lockfile together). Nix consumes
-#     the lockfile via importNpmLock, so every npm PR must pass
-#     scripts/check.sh and clear the Firstmate bootstrap floors
-#     (docs/updates.md, docs/firstmate.md).
+#     the lockfile via importNpmLock, so every npm PR is validated with
+#     scripts/check.sh and must clear the Firstmate bootstrap floors
+#     (docs/updates.md, docs/firstmate.md); auto-merge may land it before
+#     that check runs.
 #   - The URL/SRI-pinned no-mistakes/herdr release assets in lib/firstmate.nix
 #     are NOT Dependabot-tracked; they move via deliberate version+hash edits.
 version: 2

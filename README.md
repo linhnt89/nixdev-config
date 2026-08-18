@@ -97,6 +97,8 @@ scripts/update-home-manager.sh  # Laptop companion lane: fast-forward checkout, 
                              # build/switch the standalone HM profile (activation opt-in — docs/home-manager.md)
 tests/run-tests.sh         # offline regression tests for the companion lane (fixture repos + fake nix)
 .github/dependabot.yml     # nix update lanes (weekly), no CI
+.github/workflows/         # only workflow: Dependabot auto-merge helper
+                           # (admin only, not CI — docs/updates.md)
 ```
 
 ## Project principles
@@ -120,9 +122,11 @@ tests/run-tests.sh         # offline regression tests for the companion lane (fi
   `scripts/check.sh` before merge. Rollback is a lock revert.
 - **Local validation is the authoritative gate.** `scripts/check.sh`
   (static checks + `nix flake check` + non-activating builds of every
-  devShell and both Home Manager role profiles) must pass before any PR
-  is merged. CI is not configured and not required. Direct PRs; merge
-  approval stays with firstmate/captain.
+  devShell and the Home Manager role profiles) must pass before a PR is
+  merged manually. Dependabot bot PRs are auto-merged by a small admin
+  workflow and may land without it (docs/updates.md). CI is not configured
+  and not required. Direct PRs; merge approval stays with
+  firstmate/captain.
 - **`nix develop` is ephemeral; the Home Manager profile is persistent.**
   Both consume the identical package lists (`lib/package-lists.nix`), so
 they cannot drift. The profile activation is generation-based with

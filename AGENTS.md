@@ -15,7 +15,8 @@ This file is the project's committed home for project-intrinsic agent knowledge:
 
 - Enter a shell: `nix develop` (laptop) / `nix develop .#desktop` / `nix develop .#assistant` / `nix develop .#firstmate` (opt-in toolchain).
 - Standalone Home Manager activation is documented in `docs/home-manager.md` (thin personal wrapper flake + `lib.mkStandalone`; generation-based rollback). It is never run from this repo's own validation.
-- Validate everything: `scripts/check.sh` — static checks (layout, bash -n, shellcheck, YAML/JSON parse, no-secrets scan) + `nix flake check` + non-activating builds of all devShell outputs and the Home Manager role profiles including the opt-in firstmate variants (built via `lib.mkStandalone` with a throwaway test user). **This is the authoritative prereq for any PR; CI is intentionally absent.**
+- Validate everything: `scripts/check.sh` — static checks (layout, bash -n, shellcheck, actionlint on `.github/workflows`, YAML/JSON parse, no-secrets scan) + `nix flake check` + non-activating builds of all devShell outputs and the Home Manager role profiles including the opt-in firstmate variants (built via `lib.mkStandalone` with a throwaway test user). **This is the authoritative prereq for any PR; CI is intentionally absent.**
+- Dependabot bot PRs auto-merge: the repo's only workflow is `.github/workflows/dependabot-automerge.yml` (admin helper, not CI — no checkout, no builds; requests squash auto-merge for `dependabot[bot]` PRs on the default branch via `gh`). With no required checks they can merge promptly, without `scripts/check.sh`; the one-time "Allow auto-merge" repo setting is the prerequisite (docs/updates.md).
 - Update inputs: `nix flake update` (or per-input); rollback is a flake.lock revert (docs/updates.md). Dependabot opens weekly nix-lane PRs (stable lane = nixpkgs + home-manager) plus an npm lane for the pinned Firstmate axi CLIs (`firstmate/node-tools`).
 
 ## Where decisions live (docs are authoritative)
