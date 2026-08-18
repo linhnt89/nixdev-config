@@ -38,20 +38,27 @@ nix develop .#firstmate
 # nix-direnv (both shell roles ship direnv + nix-direnv).
 ```
 
+# Laptop companion lane: update the standalone Home Manager profile
+# (fast-forward the checkout, build; activate only with --switch)
+scripts/update-home-manager.sh --dry-run     # read-only preflight
+scripts/update-home-manager.sh               # fast-forward + build, no activation
+scripts/update-home-manager.sh --switch      # ...and activate (opt-in)
+
 For the persistent Home Manager profile (shell/starship/fzf/git-delta
 dotfiles plus the same package set, activated and rolled back by
 `home-manager switch` / `home-manager rollback`), see
-[docs/home-manager.md](docs/home-manager.md). For the **opt-in Firstmate
-toolchain profile** (the binaries Firstmate's bootstrap needs, for a machine
-that runs Firstmate), see [docs/firstmate.md](docs/firstmate.md) — tools
-only; the Firstmate machine clone origin is
-<https://github.com/linhnt89/firstmate> (upstream:
+[docs/home-manager.md](docs/home-manager.md) — including the
+`scripts/update-home-manager.sh` companion update/apply lane described
+there. For the **opt-in Firstmate toolchain profile** (the binaries
+Firstmate's bootstrap needs, for a machine that runs Firstmate), see
+[docs/firstmate.md](docs/firstmate.md) — tools only; the Firstmate machine
+clone origin is <https://github.com/linhnt89/firstmate> (upstream:
 <https://github.com/kunchenguid/firstmate>) and its per-machine
 `data/`/`state/`/`config/`/`projects/` stay in the machine's private home.
 The pinned treehouse worktree provider is exported as
-`packages.<system>.treehouse`, so downstream Home Manager consumers pass
-the package through explicit `extraSpecialArgs` with no second treehouse
-flake input of their own (docs/firstmate.md).
+`packages.<system>.treehouse`, so downstream Home Manager consumers pass the
+package through explicit `extraSpecialArgs` with no second treehouse flake
+input of their own (docs/firstmate.md).
 
 ## What is inside
 
@@ -85,7 +92,10 @@ docs/
   home-manager.md          # Phase 2: portable, parameterized HM modules/profiles (live)
   assistant-tooling.md     # Pi (optional, llama.cpp fallback) + firstmate separation
   firstmate.md             # Phase 3: opt-in Firstmate toolchain (tools only, pinned)
-scripts/check.sh           # local validation gate (static checks + flake check + builds)
+scripts/check.sh           # local validation gate (static checks + regression tests + flake check + builds)
+scripts/update-home-manager.sh  # Laptop companion lane: fast-forward checkout, re-lock wrapper,
+                             # build/switch the standalone HM profile (activation opt-in — docs/home-manager.md)
+tests/run-tests.sh         # offline regression tests for the companion lane (fixture repos + fake nix)
 .github/dependabot.yml     # nix update lanes (weekly), no CI
 ```
 

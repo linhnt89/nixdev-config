@@ -28,6 +28,8 @@ This file is the project's committed home for project-intrinsic agent knowledge:
 - Opt-in Firstmate toolchain profile (tools only, pins, activation on both machines): `docs/firstmate.md`
 - Phase 2 Home Manager modules/profiles (parameterized, rollback via generations, nixos-config import surface): `docs/home-manager.md`
 - Home Manager is pinned to `release-26.05` with nixpkgs following this repo's pin; HM modules are plain HM modules (importable standalone and from NixOS-side HM) — never NixOS system modules.
+- Laptop companion update/apply lane for the standalone Home Manager wrapper: `scripts/update-home-manager.sh` (offline regression tests in `tests/run-tests.sh`, wired into `scripts/check.sh`) — docs/home-manager.md
+- Path convention: laptop checkouts live under `~/firstmate/projects/` (nixdev-config is the update lane's default checkout), the Home Manager wrapper at `~/.config/home-manager`; the PC (nixos-config) follows the same `~/firstmate/projects/` convention for `nixos-config`.
 
 ## Sharp edges
 

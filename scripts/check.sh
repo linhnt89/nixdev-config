@@ -4,11 +4,14 @@
 #
 # Runs, in order:
 #   1. static checks: required layout, shell syntax + shellcheck of the
-#      repo's scripts, YAML parse of .github/dependabot.yml, JSON parse of
-#      flake.lock, and a no-secrets scan of tracked files
-#   2. `nix flake check`
-#   3. NON-ACTIVATING builds of every devShell output
-#   4. NON-ACTIVATING builds of the Home Manager role profiles (laptop =
+#      repo's scripts and tests, YAML parse of .github/dependabot.yml, JSON
+#      parse of flake.lock, and a no-secrets scan of tracked files
+#   2. offline regression tests for the standalone Home Manager update lane
+#      (tests/run-tests.sh — fixture git repos + a fake `nix`; no network,
+#      no real Nix evaluation, no activation)
+#   3. `nix flake check`
+#   4. NON-ACTIVATING builds of every devShell output
+#   5. NON-ACTIVATING builds of the Home Manager role profiles (laptop =
 #      glab, desktop = gh, optional firstmate = the Firstmate toolchain incl.
 #      a herdr-enabled variant), built via the parameterized lib.mkStandalone
 #      factory with a throwaway test user
@@ -81,7 +84,7 @@ with_tool() {
 echo '==> Static checks'
 
 echo '  required layout:'
-for f in flake.nix flake.lock README.md scripts/check.sh lib/package-lists.nix home docs; do
+for f in flake.nix flake.lock README.md scripts/check.sh scripts/update-home-manager.sh lib/package-lists.nix home docs tests; do
   if [[ -e "$f" ]]; then
     echo "    ok $f"
   else
@@ -91,14 +94,14 @@ for f in flake.nix flake.lock README.md scripts/check.sh lib/package-lists.nix h
 done
 
 echo '  shell syntax (bash -n):'
-for f in scripts/*.sh; do
+for f in scripts/*.sh tests/*.sh; do
   [[ -f "$f" ]] || continue
   bash -n "$f"
   echo "    ok $f"
 done
 
 echo '  shellcheck (where available):'
-for f in scripts/*.sh; do
+for f in scripts/*.sh tests/*.sh; do
   [[ -f "$f" ]] || continue
   if with_tool shellcheck shellcheck shellcheck -S warning "$f"; then
     echo "    ok $f"
@@ -152,6 +155,20 @@ done < <(git ls-files 2>/dev/null | grep -v '^flake.lock$' || true)
 if [[ $secrets -eq 0 ]]; then
   echo "    ok"
 else
+  failures=1
+fi
+
+# --- offline regression tests -------------------------------------------
+
+# The standalone Home Manager update lane (scripts/update-home-manager.sh)
+# is exercised offline: fixture git repos, a fake `nix` on PATH, HOME
+# redirected to a throwaway tree. Never contacts GitHub, never builds with
+# real Nix, never activates anything.
+echo '==> Regression tests (offline, no activation)'
+if bash tests/run-tests.sh; then
+  echo '  ok: tests/run-tests.sh passed'
+else
+  echo '  fail: tests/run-tests.sh reported problems' >&2
   failures=1
 fi
 

@@ -138,6 +138,72 @@ tracked as Home Manager generations (`~/.local/state/home-manager`), so
   stays out of scope (bash integration is enabled so the profile works
   either way; `zsh` starts wherever you invoke it).
 
+## Updating the laptop's standalone profile (companion lane)
+
+The laptop's standalone setup consumes the local nixdev-config checkout
+directly (`path:` input, above), so "updating Home Manager" means:
+fast-forward that checkout, point the wrapper's `nixdev-config` input at the
+new revision, build the profile, and — only on request — activate it. That
+is exactly what the portable companion script does:
+
+```bash
+scripts/update-home-manager.sh              # preflight + fast-forward + build (NO activation)
+scripts/update-home-manager.sh --dry-run    # read-only preflight, prints the exact commands
+scripts/update-home-manager.sh --switch     # ...and activate (opt-in; --apply is an alias)
+```
+
+It is runnable from either side of the setup:
+
+- from the checkout: `cd ~/firstmate/projects/nixdev-config && scripts/update-home-manager.sh`
+- from the wrapper:  `~/firstmate/projects/nixdev-config/scripts/update-home-manager.sh`
+
+Defaults: checkout `$HOME/firstmate/projects/nixdev-config`, wrapper
+`$HOME/.config/home-manager`; both are overridable with
+`--checkout DIR` / `--wrapper DIR`, plus `--profile NAME` (or
+`--flake DIR#NAME`) to select the `homeConfigurations.<NAME>` attribute —
+auto-detected when the wrapper defines exactly one. `--remote NAME` /
+`--branch NAME` disambiguate unusual remotes/branches. `--help` documents
+everything.
+
+What the script guarantees:
+
+- It refuses dirty, detached, conflicted, wrong-branch, diverged
+  (non-fast-forwardable), multi-remote, wrapper/checkout-mismatched, and
+  ambiguous-profile states. Nothing is stashed, reset, cleaned, rebased, or
+  merged; the checkout is only ever fast-forwarded from its configured
+  remote.
+- The wrapper is inspected read-only. The single wrapper mutation is
+  `nix flake lock --update-input nixdev-config` — regenerating the
+  generated `flake.lock` so it records the new checkout revision (the point
+  of an update). `flake.nix` and every private file stay byte-identical.
+  On `--switch` a timestamped `flake.lock.pre-update.<ts>` backup is kept
+  for pinning back.
+- The build uses the repo's pinned home-manager CLI
+  (`nix run <checkout>#home-manager -- build --flake <wrapper>#<name>`);
+  `nixos-rebuild`, system services, and desktop activation are never run.
+- Fetch/authentication and build failures stop before any activation and
+  leave both the checkout and the wrapper fully inspectable.
+
+Rollback is generation-based as always — the script prints the exact
+commands after a successful switch:
+
+```bash
+home-manager generations      # inspect
+home-manager rollback         # undo the last switch
+```
+
+To additionally pin the wrapper back to the pre-update nixdev-config
+revision, restore the saved `flake.lock.pre-update.<ts>` backup and switch
+again. The checkout keeps every old commit (fast-forward only adds
+history), and the lane is covered by offline regression tests
+(`tests/run-tests.sh`, run by `scripts/check.sh`).
+
+This is the **laptop companion lane**. The PC consumes this repo as a flake
+input; its update lane is the separate
+`nixos-config/scripts/update-nixdev-config.sh` script in the nixos-config
+repository, using the same path convention
+(`$HOME/firstmate/projects/nixos-config`).
+
 ## How nixos-config will consume this (later PR, not this repo)
 
 A follow-up PR in the **nixos-config** repository will import these

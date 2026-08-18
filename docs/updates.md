@@ -26,9 +26,14 @@ docs/home-manager.md). One nixpkgs pin covers both surfaces.
 | --- | --- | --- |
 | Stable shell + HM packages | `nixpkgs` + `home-manager` inputs (`nixos-26.05` / `release-26.05`, HM's nixpkgs follows ours) | Dependabot weekly nix PR (grouped) or `nix flake update nixpkgs home-manager` |
 | Assistant lane (Pi) | `nixpkgs-unstable` input | Dependabot individual PR (deliberate, not grouped) or `nix flake update nixpkgs-unstable` |
+| Laptop standalone HM (companion lane) | local `path:` checkout + the wrapper's `flake.lock` | `scripts/update-home-manager.sh` — fast-forward the checkout, re-lock the wrapper input, build, opt-in `--switch`; rollback = wrapper lock backup + `home-manager rollback` (docs/home-manager.md) |
 | Firstmate — treehouse | `treehouse` input (flake pinned at tag `v2.1.1`, its nixpkgs follows `nixpkgs-unstable`) | Dependabot individual PR (deliberate, not grouped) or `nix flake update treehouse`; docs/firstmate.md |
 | Firstmate — axi CLIs | `firstmate/node-tools/package.json` + `package-lock.json` | Dependabot npm-lane PR for `firstmate/node-tools` (weekly); must pass `scripts/check.sh` |
 | Firstmate — no-mistakes / herdr | pinned release assets in `lib/firstmate.nix` (URL + SRI) | Manual deliberate bump (version + URL + hash edit); not Dependabot-tracked |
+
+The desktop PC has its own separate lane,
+`nixos-config/scripts/update-nixdev-config.sh`, which updates the
+nixdev-config flake input there; it is not part of this repository.
 
 `nixpkgs-unstable` is excluded from the stable group on purpose: the Pi lane
 moves only when an assistant-tooling update is actually wanted, not silently
@@ -69,6 +74,15 @@ nix flake update            # bump all inputs to current branch heads
 scripts/check.sh            # validate before committing the lock change
 ```
 
+For the laptop's standalone Home Manager profile, the checkout and the
+wrapper move through the companion lane instead (fast-forward + build,
+activation opt-in):
+
+```bash
+scripts/update-home-manager.sh              # fast-forward + build, no activation
+scripts/update-home-manager.sh --switch     # add opt-in activation
+```
+
 ## Rollback
 
 ```bash
@@ -79,3 +93,14 @@ scripts/check.sh
 
 Because nothing here activates a system, "rollback" never touches a machine;
 it is purely which pinned revisions the next `nix develop` uses.
+
+For the laptop's standalone Home Manager profile, rollback is
+**generation-based** once activated, plus the wrapper-pin backup the lane
+saves on `--switch`:
+
+```bash
+home-manager rollback       # undo the last activation (docs/home-manager.md)
+# and optionally restore the pre-update wrapper pin:
+cp ~/.config/home-manager/flake.lock.pre-update.<ts> \
+   ~/.config/home-manager/flake.lock
+```

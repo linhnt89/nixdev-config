@@ -4,7 +4,7 @@
 
 On the laptop, **all files worked on by WSL-side tools — project checkouts,
 this repository, Git data, the Nix store — live in the Arch distro's ext4
-filesystem** (e.g. `~/dev`, `~/projects`). Never under `/mnt/c`.
+filesystem** (e.g. `~/firstmate/projects`). Never under `/mnt/c`.
 
 `/mnt/c` is a DrvFS (9p) network mount. Working across it is slow for git,
 file watching, and builds, and it breaks editor/tool file-watching by design
@@ -13,11 +13,16 @@ file watching, and builds, and it breaks editor/tool file-watching by design
 ## Concretely
 
 ```bash
-mkdir -p ~/projects
-git clone git@gitlab.com:you/project.git ~/projects/project
-git clone https://github.com/linhnt89/nixdev-config ~/projects/nixdev-config   # read-only pull on the laptop
-cd ~/projects/nixdev-config && nix develop
+mkdir -p ~/firstmate/projects
+git clone git@gitlab.com:you/project.git ~/firstmate/projects/project
+git clone https://github.com/linhnt89/nixdev-config ~/firstmate/projects/nixdev-config   # read-only pull on the laptop
+cd ~/firstmate/projects/nixdev-config && nix develop
 ```
+
+The nixdev-config checkout and the standalone Home Manager wrapper
+(defaults `~/firstmate/projects/nixdev-config` and
+`~/.config/home-manager`) are exactly what the companion update lane
+`scripts/update-home-manager.sh` works on — docs/home-manager.md.
 
 - Windows-side access to these files is **viewing only**, via
   `\\wsl$\Arch\home\<user>\projects\...` (or `explorer.exe .` from inside
