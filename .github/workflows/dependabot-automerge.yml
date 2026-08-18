@@ -1,0 +1,54 @@
+# Auto-merge helper for Dependabot version-update PRs (GitHub-native, admin only).
+#
+# This is the repository's ONLY workflow, and it is not CI: it never builds,
+# checks out, executes, or evaluates PR code. Local validation with
+# scripts/check.sh stays the authoritative gate for what is validated
+# (docs/updates.md); remote CI remains intentionally absent.
+#
+# Trusted base-branch workflow form:
+#   - `pull_request_target` runs this workflow definition from the default
+#     branch, never from the PR's branch.
+#   - The job only asks GitHub to enable auto-merge for the PR via the gh
+#     CLI already present on hosted runners; the PR URL is passed as a
+#     plain argument, never evaluated as shell code.
+#   - Hard gates: author is exactly `dependabot[bot]`, base is the
+#     repository default branch, repository is exactly
+#     linhnt89/nixdev-config.
+#   - Least permissions: `pull-requests: write` only; nothing else.
+#
+# Behavior: requests SQUASH auto-merge with `--auto`. Never a direct merge,
+# never an approval. GitHub's repository auto-merge setting and any branch
+# protection rules remain authoritative: with no required checks, eligible
+# bot PRs may merge promptly; required checks, if configured later, are
+# still enforced by GitHub and block the auto-merge until they pass.
+#
+# One-time prerequisite: allow auto-merge for this repository
+# (Settings > General > Pull requests > "Allow auto-merge"). Without it
+# every bot PR shows a failed run of this job — that is the intended signal.
+name: Dependabot auto-merge
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  pull-requests: write
+
+concurrency:
+  group: dependabot-automerge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  enable-auto-merge:
+    if: >-
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.pull_request.base.ref == github.event.pull_request.base.repo.default_branch &&
+      github.repository == 'linhnt89/nixdev-config'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Request squash auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr merge --auto --squash "$PR_URL"

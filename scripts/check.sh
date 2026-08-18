@@ -4,8 +4,9 @@
 #
 # Runs, in order:
 #   1. static checks: required layout, shell syntax + shellcheck of the
-#      repo's scripts and tests, YAML parse of .github/dependabot.yml, JSON
-#      parse of flake.lock, and a no-secrets scan of tracked files
+#      repo's scripts and tests, YAML parse of .github/dependabot.yml and
+#      .github/workflows/*.yml, actionlint on the workflows, JSON parse of
+#      flake.lock, and a no-secrets scan of tracked files
 #   2. offline regression tests for the standalone Home Manager update lane
 #      (tests/run-tests.sh — fixture git repos + a fake `nix`; no network,
 #      no real Nix evaluation, no activation)
@@ -29,10 +30,11 @@
 #
 # Exit codes: 0 = all checks passed; nonzero = first failing check.
 #
-# Static-check parsers: shellcheck/yq/jq on PATH are used when present;
-# otherwise `nix shell nixpkgs#<tool>` provides them (nixpkgs is fetched by
-# this repo's own lock). If neither is available the step warns and is
-# skipped — the flake steps below would fail in such an environment anyway.
+# Static-check parsers: shellcheck/actionlint/yq/jq on PATH are used when
+# present; otherwise `nix shell nixpkgs#<tool>` provides them (nixpkgs is
+# fetched by this repo's own lock). If neither is available the step warns
+# and is skipped — the flake steps below would fail in such an environment
+# anyway.
 
 set -euo pipefail
 
@@ -84,7 +86,7 @@ with_tool() {
 echo '==> Static checks'
 
 echo '  required layout:'
-for f in flake.nix flake.lock README.md scripts/check.sh scripts/update-home-manager.sh lib/package-lists.nix home docs tests; do
+for f in flake.nix flake.lock README.md scripts/check.sh scripts/update-home-manager.sh lib/package-lists.nix home docs tests .github/workflows; do
   if [[ -e "$f" ]]; then
     echo "    ok $f"
   else
@@ -115,7 +117,7 @@ for f in scripts/*.sh tests/*.sh; do
 done
 
 echo '  YAML parse (.github):'
-yaml_files=(.github/dependabot.yml)
+yaml_files=(.github/dependabot.yml .github/workflows/*.yml)
 existing_yaml=()
 for f in "${yaml_files[@]}"; do
   [[ -f "$f" ]] && existing_yaml+=("$f")
@@ -127,6 +129,20 @@ if ((${#existing_yaml[@]} > 0)); then
     :
   else
     echo "    warn: no YAML parser available (python3/PyYAML, yq, or nix); skipping" >&2
+  fi
+fi
+
+echo '  actionlint (.github/workflows):'
+# Semantic check of the repository's workflow(s): validates triggers, `if:`
+# expression properties against GitHub's expression schema, permissions,
+# and step structure. No-arg actionlint covers the default .github/workflows.
+if with_tool actionlint actionlint actionlint; then
+  echo "    ok .github/workflows"
+else
+  rc=$?
+  if [[ $rc -eq 1 ]]; then
+    echo "    fail: actionlint reported issues in .github/workflows" >&2
+    failures=1
   fi
 fi
 
