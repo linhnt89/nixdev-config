@@ -65,8 +65,17 @@
       firstmateTools = system:
         import ./lib/firstmate.nix {
           pkgs = nixpkgs.legacyPackages.${system};
-          treehousePkg = treehouse.packages.${system}.default;
+          treehousePkg = treehousePkg system;
         };
+
+      # The pinned treehouse package for a system — the single source behind
+      # the exported `packages.${system}.treehouse` output AND what
+      # mkHomeConfiguration injects into the Firstmate module internally.
+      # External consumers (nixos-config) pass the exported package via
+      # explicit extraSpecialArgs (docs/firstmate.md); standalone callers get
+      # it wired automatically by lib.mkStandalone. No consumer ever needs
+      # its own treehouse flake input.
+      treehousePkg = system: treehouse.packages.${system}.default;
 
       mkShell = pkgs: packages: banner: 
         pkgs.mkShell {
@@ -93,8 +102,10 @@
           pkgs = nixpkgs.legacyPackages.${system};
           extraSpecialArgs = {
             pkgsUnstable = nixpkgs-unstable.legacyPackages.${system};
-            # The pinned treehouse package for this system (Firstmate module).
-            treehousePkg = treehouse.packages.${system}.default;
+            # Same package as the exported packages.${system}.treehouse —
+            # internal wiring for lib.mkStandalone; external consumers pass
+            # the export themselves via extraSpecialArgs (docs/firstmate.md).
+            treehousePkg = treehousePkg system;
           };
           modules = [
             {
@@ -133,11 +144,23 @@
         }
       );
 
-      # The home-manager CLI pinned to this repo's home-manager input, so
-      # `nix run .#home-manager -- switch --flake .#laptop` uses exactly
-      # the release the configurations were built with.
+      # Consumer-facing package outputs.
+      # - home-manager: the CLI pinned to this repo's home-manager input, so
+      #   `nix run .#home-manager -- switch --flake .#laptop` uses exactly
+      #   the release the configurations were built with.
+      # - treehouse: the pinned Firstmate worktree provider (flake input at
+      #   tag v2.1.1, docs/firstmate.md). This is the stable, documented way
+      #   for a consumer of homeManagerModules.firstmateTools to obtain the
+      #   package without declaring a second treehouse flake input:
+      #
+      #       home-manager.extraSpecialArgs.treehousePkg =
+      #         nixdev-config.packages.${system}.treehouse;
+      #
+      #   Standalone callers never touch this — lib.mkStandalone wires the
+      #   same package internally.
       packages = forAllSystems (system: {
         home-manager = home-manager.packages.${system}.home-manager;
+        treehouse = treehousePkg system;
       });
 
       # Reusable portable Home Manager modules (NOT NixOS system modules).

@@ -17,6 +17,16 @@
 # Installable from standalone Home Manager (laptop) and from Home Manager
 # embedded in NixOS (desktop's nixos-config PR later); the parameters come
 # from the caller — nothing here is user- or machine-specific.
+#
+# Where the required `treehousePkg` argument comes from:
+#   - standalone callers through `lib.mkStandalone`: wired automatically by
+#     the flake's factory.
+#   - external NixOS Home Manager callers: explicitly, via extraSpecialArgs,
+#     using ONLY this flake's public package output — no second treehouse
+#     flake input on the consumer side (docs/firstmate.md):
+#
+#         home-manager.extraSpecialArgs.treehousePkg =
+#           nixdev-config.packages.${pkgs.system}.treehouse;
 { config, lib, pkgs, treehousePkg, ... }:
 
 let

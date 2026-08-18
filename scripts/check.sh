@@ -172,6 +172,14 @@ else
     nix build --no-link ".#devShells.$system.$shell"
   done
 
+  # Consumer-facing package outputs build too: treehouse is THE documented
+  # package export for external Home Manager consumers (docs/firstmate.md).
+  echo '==> Building package outputs (never activates or switches)'
+  for pkg in home-manager treehouse; do
+    echo "    nix build .#packages.$system.$pkg"
+    nix build --no-link ".#packages.$system.$pkg"
+  done
+
   # Home Manager role profiles, built non-activating through the
   # parameterized lib.mkStandalone factory with a throwaway test user.
   # This evaluates both role splits (laptop=glab, desktop=gh) and builds
@@ -203,6 +211,53 @@ else
     ]
   '
   echo "    ok home profiles (laptop + desktop + firstmate ± herdr) built non-activating"
+
+  # Offline regression for the EXTERNAL NixOS-style consumer contract
+  # (docs/firstmate.md): build Home Manager configurations that use ONLY
+  # this flake's public outputs — homeManagerModules.firstmateTools plus the
+  # exported packages.${system}.treehouse, passed via explicit
+  # extraSpecialArgs — exactly what a nixos-config caller does, without a
+  # second treehouse flake input. This repo's locked home-manager input
+  # stands in for the consumer's (same release mkStandalone uses). Nothing
+  # is activated or switched. Guards the export/contract end to end: if the
+  # package output or the module's treehousePkg contract breaks, this build
+  # fails here, not on a machine.
+  echo '==> Building external-consumer Home Manager configs (public outputs only)'
+  nix build --no-link --impure --expr '
+    let
+      flake = builtins.getFlake (toString ./.);
+      home-manager = flake.inputs.home-manager;
+      lib = flake.inputs.nixpkgs.lib;
+      system = builtins.currentSystem;
+
+      # The exact call shape an external NixOS Home Manager consumer uses:
+      # only public outputs + explicit extraSpecialArgs (docs/firstmate.md).
+      mkConsumer = { enableHerdr ? false }:
+        (home-manager.lib.homeManagerConfiguration {
+          pkgs = flake.inputs.nixpkgs.legacyPackages.${system};
+          extraSpecialArgs = {
+            treehousePkg = flake.packages.${system}.treehouse;
+          };
+          modules =
+            [
+              {
+                home = {
+                  username = "nixdev-check";
+                  homeDirectory = "/home/nixdev-check";
+                  stateVersion = "26.05";
+                };
+              }
+              flake.homeManagerModules.firstmateTools
+            ]
+            ++ lib.optional enableHerdr { nixdev.firstmate.enableHerdr = true; };
+        }).activationPackage;
+    in
+    [
+      (mkConsumer { }) # tmux backend reference workflow
+      (mkConsumer { enableHerdr = true; }) # opt-in herdr backend variant
+    ]
+  '
+  echo "    ok external-consumer configs (firstmateTools ± herdr via public package export) built non-activating"
 fi
 
 if [[ $failures -ne 0 ]]; then

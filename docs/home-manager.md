@@ -58,6 +58,10 @@ it (docs/firstmate.md).
   the parameterized factory for standalone activation (below).
 - `packages.<system>.home-manager` — the home-manager CLI, pinned to this
   repo's home-manager input (`nix run .#home-manager`).
+- `packages.<system>.treehouse` — the pinned Firstmate worktree provider
+  (docs/firstmate.md); the documented package export for external Home
+  Manager consumers of `homeManagerModules.firstmateTools` (pass it via
+  explicit `extraSpecialArgs` — no second treehouse flake input).
 - `devShells.*` — unchanged from Phase 1, now fed from the same package
   lists the profiles use.
 
