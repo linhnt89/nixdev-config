@@ -180,6 +180,41 @@ let
         platforms = [ pkgs.system ];
       };
     };
+
+  # crew-watch: OPTIONAL read-only human diagnostic sidecar — a Linux-only
+  # terminal monitor (TUI) for firstmate fleets: htop-style system overview
+  # plus one row per running agent session (subtree-aggregated CPU/MEM, model,
+  # TASK and STATE columns read from a firstmate home). Adopted per captain
+  # decision as a sidecar only (docs/firstmate.md): it is a foreground
+  # interactive viewer (or `--once` text dump), never a daemon, never a
+  # wake/alert/ack/reconciliation peer of Firstmate's durable watcher, and it
+  # replaces no supervision component. Source-built from the upstream git tag
+  # v0.1.1 (commit 20307001709b47ecf8a948decfbdd34f717c151b — HEAD of `main`
+  # at pin time, verified against crates.io 0.1.1), pinned by commit + source
+  # hash + Cargo dependency hash. There are no upstream release assets, so
+  # this is a source build; nothing about it runs at runtime except reading
+  # /proc and the firstmate home read-only (no network on the monitoring
+  # path). Update boundary: docs/updates.md — deliberate manual bump only.
+  crewWatch =
+    pkgs.rustPlatform.buildRustPackage {
+      pname = "crew-watch";
+      version = "0.1.1";
+
+      src = pkgs.fetchFromGitHub {
+        owner = "ppetermann";
+        repo = "crew-watch";
+        rev = "20307001709b47ecf8a948decfbdd34f717c151b"; # tag v0.1.1
+        hash = "sha256-rMbSbdprk7IAh4oklRlY+eSDYj3AQSrHMmWhTzEa2Iw=";
+      };
+
+      cargoHash = "sha256-/sugjZ33ia+EMjNNOXNOgwPaR2p2Pdb6BWG0w8pyKsk=";
+
+      meta = {
+        description = "Read-only terminal monitor for firstmate fleets (pinned source build, optional sidecar)";
+        license = pkgs.lib.licenses.mit; # MIT (see upstream ppetermann/crew-watch)
+        platforms = pkgs.lib.platforms.linux; # /proc-based, Linux only by design
+      };
+    };
 in
 {
   inherit
@@ -188,6 +223,7 @@ in
     noMistakes
     treehouse
     herdr
+    crewWatch
     ;
 
   # The default toolchain for the Firstmate reference workflow (tmux
@@ -204,6 +240,7 @@ in
     axiTools
     noMistakes
     treehouse
+    crewWatch
   ];
 
   banner = ''
@@ -212,6 +249,7 @@ in
                         lavish-axi, tasks-axi, quota-axi, no-mistakes
       Session/works   : tmux (default backend) + treehouse
       Herdr backend   : opt-in per profile (nixdev.firstmate.enableHerdr)
+      Sidecar         : crew-watch (read-only human diagnostic; --fm-home)
       Creds/state     : never here — gh auth, ~/.ssh, ~/.claude, and the
                         separate firstmate home stay machine-local.
       Docs            : docs/firstmate.md

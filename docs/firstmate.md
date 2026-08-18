@@ -53,6 +53,7 @@ full toolchain:
 | `no-mistakes` | **1.46.0** | pinned release asset (SRI in `lib/firstmate.nix`) |
 | `treehouse` | **2.1.1** | upstream flake pinned at tag `v2.1.1` (flake.lock) |
 | `herdr` | **0.8.0** | pinned release asset — **opt-in only** (`nixdev.firstmate.enableHerdr`) |
+| `crew-watch` | **0.1.1** | pinned source build (git tag `v0.1.1` commit + source/Cargo hashes in `lib/firstmate.nix`) — read-only diagnostic sidecar |
 
 The five axi CLIs are installed from the committed lockfile
 `firstmate/node-tools/package-lock.json` via nixpkgs' `importNpmLock`
@@ -87,6 +88,62 @@ This repository installs the **binary only**. It never starts, stops,
 restarts, or drives any Herdr session or lifecycle — Firstmate does that via
 its own bootstrap and backend scripts. Without this option the tmux backend
 (already installed) remains the reference workflow.
+
+### crew-watch — optional read-only human diagnostic sidecar
+
+`crew-watch` is a **read-only terminal monitor** for firstmate fleets
+(upstream <https://github.com/ppetermann/crew-watch>, MIT): the top half is
+an htop-style system overview, the bottom half one row per running agent
+session with subtree-aggregated CPU/MEM, model, elapsed, and `TASK`/`STATE`
+columns read from a firstmate home. It is installed as a plain binary in the
+toolchain — **nothing starts it, schedules it, or reads its output**: no
+daemon, no systemd service, no auto-start hook, no wake/alert path. A human
+runs it ad hoc in a terminal:
+
+```bash
+crew-watch --fm-home /home/<you>/firstmate            # live TUI, real home
+crew-watch --fm-home /home/<you>/firstmate --once     # one-shot text dump
+```
+
+- **`--fm-home`** points at the machine's private Firstmate home (it reads
+  `state/*.meta`, `state/*.status`, `state/*.busy-state` + `*.busy-gen`,
+  `data/backlog.md`, `data/<task>/brief.md`). Without it the default is
+  `$CREW_WATCH_FM_HOME`, then `~/agents/firstmate` — a deployment whose
+  home lives elsewhere (e.g. the MetaCube desktop's `/home/linhnt/firstmate`)
+  must pass `--fm-home` explicitly. Everything it reads is read-only and
+  best-effort; it writes nothing back (the only file it may persist is its
+  own `~/.config/crew-watch/config` quota-provider choice).
+- **`--once`** collects two samples ~1s apart (so CPU% is a real delta) and
+  dumps plain text to stdout, then exits 0 — for scripting/grepping. Its
+  output is **not a versioned machine API**; treat it as text for humans.
+- `--no-quota` skips the optional `quota-axi` fetch; `--interval <sec>` sets
+  the TUI refresh (default 2s).
+
+**Known limitations** (why it stays a sidecar, never a supervision input):
+
+- **Stale STATE column.** `state/<id>.status` is an append-only event log and
+  the TUI shows its last line, while firstmate's own
+  `bin/fm-crew-state.sh` reconciles the log against the authoritative
+  current state. A worker that silently resumed after a
+  `needs-decision:`/`blocked:` tail can still render as open, and a worker
+  whose process died without a `failed:` line can render as working until
+  the next refresh. Firstmate's reconciliation is the source of truth; the
+  TUI is a window, not a verdict.
+- **Linux-only.** `/proc` is the process model by design.
+- **Harness coverage.** Detection matches known agent runtimes
+  (claude/opencode/codex/grok/kimi/muse/pi) by process basename; a
+  `cursor`-backed worker gets no own row. It is not backend-aware (tmux/Herdr
+  pane identity and busy signals are invisible).
+- **Format drift.** The firstmate file formats it reads are an external
+  contract owned by firstmate; it fails soft (one degraded signal per
+  missing file) but can silently misread formats that drift. When this
+  repo's pin moves, formats are re-verified (docs/updates.md).
+
+**Boundary (unchanged by this addition):** the durable watcher, wake queue,
+acknowledgements, current-state reconciliation, and backend lifecycle stay
+firstmate-owned (`bin/fm-watch.sh`, `bin/fm-crew-state.sh`,
+`bin/fm-busy-lib.sh`). `crew-watch` replaces none of them, and nothing reads
+its output.
 
 ## Enabling it — laptop (standalone Home Manager)
 
@@ -249,6 +306,9 @@ touched by this profile.
     such PR must pass `scripts/check.sh` before merge.
   - `no-mistakes` / `herdr`: bump the version, URL, and SRI hash in
     `lib/firstmate.nix` (hashes from the upstream release checksums).
+  - `crew-watch`: bump the pinned rev (git tag commit), source hash, and
+    `cargoHash` in `lib/firstmate.nix` (source-built; hashes from
+    `nix-prefetch-url --unpack` + a build, or the upstream release).
   - `treehouse`: bump the `treehouse.url` ref in `flake.nix` and re-lock
     (`nix flake lock treehouse`); it follows the `nixpkgs-unstable` lane.
     The exported `packages.${system}.treehouse` reflects the input
@@ -257,9 +317,10 @@ touched by this profile.
 - Dependabot opens weekly PRs per lane: the nix stable lane (grouped), the
   `nixpkgs-unstable` and `treehouse` lanes (deliberate, not grouped), and an
   npm lane for `firstmate/node-tools` (the pinned axi CLIs). The URL/SRI
-  pinned release assets (no-mistakes, herdr) are not auto-bumped by
-  Dependabot — that is intentional (they need a version+hash edit, like the
-  pinned installers Firstmate itself ships).
+  pinned release assets (no-mistakes, herdr) and the source-pinned
+  crew-watch build are not auto-bumped by Dependabot — that is intentional
+  (they need a version+hash edit, like the pinned installers Firstmate
+  itself ships).
 - The firstmate devShell (`nix develop .#firstmate`) and the Home Manager
   module build from the same `lib/firstmate.nix`, so they cannot drift.
 - `scripts/check.sh` builds the firstmate devShell and the firstmate role

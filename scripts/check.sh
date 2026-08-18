@@ -205,6 +205,52 @@ else
     nix build --no-link ".#devShells.$system.$shell"
   done
 
+  # Explicit Firstmate sidecar assertion (crew-watch, docs/firstmate.md):
+  # the optional read-only human diagnostic must be part of the SHARED
+  # firstmate package set (lib/firstmate.nix — the single source behind BOTH
+  # the firstmate devShell and homeManagerModules.firstmateTools) and of the
+  # firstmate role profile's home.packages, and the pinned source build must
+  # produce a runnable `crew-watch` binary. Asserts the package/profile
+  # contract explicitly; no daemon, service, or wake/alert wiring exists or
+  # is asserted — crew-watch is a sidecar only.
+  echo '==> Firstmate sidecar assertion (crew-watch: shared set + firstmate profile + binary)'
+  nix eval --impure --expr '
+    let
+      flake = builtins.getFlake (toString ./.);
+      system = builtins.currentSystem;
+      pkgs = flake.inputs.nixpkgs.legacyPackages.${system};
+      fm = import ./lib/firstmate.nix {
+        inherit pkgs;
+        treehousePkg = flake.packages.${system}.treehouse;
+      };
+      hasCrewWatch = ps: builtins.any (p: p.pname or "" == "crew-watch") ps;
+      profile = (flake.lib.mkStandalone {
+        username = "nixdev-check";
+        homeDirectory = "/home/nixdev-check";
+        role = "firstmate";
+      }).config;
+    in
+    assert hasCrewWatch fm.packages; # devShell + HM module share this set
+    assert hasCrewWatch profile.home.packages; # firstmate role profile
+    true
+  '
+  crew_watch_bin="$(
+    nix build --no-link --print-out-paths --impure --expr '
+      let
+        flake = builtins.getFlake (toString ./.);
+        system = builtins.currentSystem;
+        pkgs = flake.inputs.nixpkgs.legacyPackages.${system};
+        fm = import ./lib/firstmate.nix {
+          inherit pkgs;
+          treehousePkg = flake.packages.${system}.treehouse;
+        };
+      in fm.crewWatch
+    '
+  )/bin/crew-watch"
+  test -x "$crew_watch_bin"
+  "$crew_watch_bin" --version >/dev/null
+  echo "    ok crew-watch 0.1.1 in shared firstmate set + firstmate profile; binary builds and runs"
+
   # Consumer-facing package outputs build too: treehouse is THE documented
   # package export for external Home Manager consumers (docs/firstmate.md).
   echo '==> Building package outputs (never activates or switches)'
