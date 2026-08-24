@@ -47,6 +47,10 @@ rec {
     pkgs.direnv
     pkgs.nix-direnv
 
+    # Native build toolchain
+    pkgs.gcc
+    pkgs.gnumake
+
     # Language tooling
     pkgs.nodejs # npm ships with nodejs
     pkgs.python3 # standard Python interpreter; also the YAML parse step in
