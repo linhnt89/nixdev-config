@@ -234,6 +234,7 @@ in
   packages = [
     nodejs
     pkgs.gitFull
+    pkgs.lsof # process inspection for Firstmate's operational safety checks
     pkgs.tmux
     pkgs.jq
     pkgs.gh
@@ -245,8 +246,9 @@ in
 
   banner = ''
     __ nixdev-config — optional Firstmate toolchain (tmux backend) __________
-      Universal tools : node, git, gh, jq, gh-axi, chrome-devtools-axi,
-                        lavish-axi, tasks-axi, quota-axi, no-mistakes
+      Universal tools : node, git, gh, jq, lsof,
+                        gh-axi, chrome-devtools-axi, lavish-axi,
+                        tasks-axi, quota-axi, no-mistakes
       Session/works   : tmux (default backend) + treehouse
       Herdr backend   : opt-in per profile (nixdev.firstmate.enableHerdr)
       Sidecar         : crew-watch (read-only human diagnostic; --fm-home)
