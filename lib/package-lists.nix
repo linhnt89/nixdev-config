@@ -26,6 +26,7 @@ rec {
     pkgs.openssh
 
     # Shell / CLI utilities
+    pkgs.diffutils # cmp / diff
     pkgs.delta # diff pager; git integration via the HM git module
     pkgs.eza # ls replacement
     pkgs.fzf # fuzzy finder
