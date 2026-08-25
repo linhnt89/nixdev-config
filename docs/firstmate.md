@@ -43,6 +43,7 @@ full toolchain:
 | `node` | repo's `pkgs.nodejs` (node 24.x) | shared with the common package set — never a second Node |
 | `git` | `pkgs.gitFull` | nixpkgs (shared common set) |
 | `tmux` | nixpkgs (3.6.x) | tmux backend session CLI |
+| `lsof` | nixpkgs | process inspection for Firstmate's operational safety checks |
 | `jq` | nixpkgs (1.8.x) | also in the common set; required by the JSON-emitting backend adapters |
 | `gh` | nixpkgs (2.97.x) | universal Firstmate requirement (the opt-in role-split exception) |
 | `gh-axi` | **0.1.30** | npm, pinned in `firstmate/node-tools/package.json` |
