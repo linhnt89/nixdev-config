@@ -25,7 +25,7 @@
     # runs on NixOS); its nixpkgs follows the unstable lane. herdr and
     # no-mistakes use pinned release assets inside lib/firstmate.nix instead
     # (statically linked binaries, no flake input needed).
-    treehouse.url = "github:kunchenguid/treehouse/v2.1.1";
+    treehouse.url = "github:kunchenguid/treehouse/v2.3.0";
     treehouse.inputs.nixpkgs.follows = "nixpkgs-unstable";
   };
 
